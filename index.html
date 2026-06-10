@@ -298,6 +298,8 @@ body {
 }
 
 /* ─── CONFIG CARD ────────────────────────────────── */
+.config-card { }
+
 .config-field {
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:12px;
@@ -438,6 +440,24 @@ tbody td {
 <!-- ─── TOAST ──────────────────────────────────── -->
 <div class="toast" id="toast">⚠ Carga acima do limite prescrito!</div>
 
+<!-- Session state banner -->
+<div id="sessionBanner" style="
+  position:fixed;top:64px;left:72px;right:0;z-index:80;
+  background:rgba(0,200,83,0.12);border-bottom:2px solid var(--ok);
+  padding:8px 28px;display:none;
+  align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="width:10px;height:10px;border-radius:50%;background:var(--ok);animation:blink 1s infinite;"></div>
+    <span style="font-size:0.78rem;font-weight:700;color:var(--ok);font-family:Montserrat,sans-serif;">SESSÃO EM ANDAMENTO</span>
+    <span style="font-size:0.72rem;color:var(--text2);font-family:Montserrat,sans-serif;" id="bannerTimer">00:00</span>
+  </div>
+  <div style="display:flex;gap:16px;font-size:0.72rem;font-family:Montserrat,sans-serif;">
+    <span>Registros: <b id="bannerRegistros" style="color:var(--secondary);">0</b></span>
+    <span>Passos: <b id="bannerPassos" style="color:var(--secondary);">0</b></span>
+    <span>Alertas: <b id="bannerAlertas" style="color:var(--danger);">0</b></span>
+  </div>
+</div>
+
 <!-- ─── SIDEBAR ────────────────────────────────── -->
 <aside class="sidebar">
   <svg class="sidebar-logo" viewBox="0 0 42 42" fill="none">
@@ -507,8 +527,21 @@ tbody td {
   </div>
 
   <div class="topbar-right">
+    <!-- START/STOP SESSION -->
+    <button id="btnStartStop" onclick="toggleSessao()"
+      style="display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:10px;
+             background:var(--ok);color:#fff;border:none;
+             font-family:Montserrat,sans-serif;font-size:0.78rem;font-weight:700;
+             cursor:pointer;transition:all .3s;letter-spacing:0.04em;">
+      <span id="btnIcon">▶</span>
+      <span id="btnLabel">INICIAR SESSÃO</span>
+    </button>
     <div class="session-badge live">Sessão ativa</div>
     <div class="clock" id="clock">00:00:00</div>
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:0.55rem;font-weight:700;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;">Sessão</div>
+      <div style="font-size:0.78rem;font-weight:700;color:var(--secondary);font-variant-numeric:tabular-nums;" id="sessionTimer">00:00</div>
+    </div>
     <button class="btn-icon" title="Notificações">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     </button>
@@ -1467,7 +1500,12 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
   atualizarInsights(adh, mediaPicoPct, picoSessaoPct, limitePct, alertasPassos, numPassos);
 
   // Export
-  dadosExport.push({ ts: Date.now(), fsrKg, cargaPct, limitePct, alerta:alerta?1:0, nPassos:numPassos, mPicoKg:mediaPicoKg, mPicoPct:mediaPicoPct, pSessao:picoSessaoKg, nAlertas:alertasPassos, nConfPct: numPassos>0?(alertasPassos/numPassos*100):0 });
+  // Só registra dados se a sessão estiver ativa
+  if (sessaoAtiva) {
+    registrosSessao++;
+    dadosExport.push({ ts: Date.now(), fsrKg, cargaPct, limitePct, alerta:alerta?1:0, nPassos:numPassos, mPicoKg:mediaPicoKg, mPicoPct:mediaPicoPct, pSessao:picoSessaoKg, nAlertas:alertasPassos, nConfPct: numPassos>0?(alertasPassos/numPassos*100):0 });
+    document.getElementById('contadorRegistros').textContent = registrosSessao + ' registros coletados';
+  }
   // log movido para parseLinha
 }
 
@@ -2096,6 +2134,107 @@ window.addEventListener('load', function() {
   showPanel('dashboard');
   logSerial(`Sistema iniciado | Peso: ${pesoCorporal}kg | Limite: ${limitePct}%`, 'ok');
 });
+
+// ─── SESSION CONTROL ───────────────────────────────
+let sessaoAtiva    = false;
+let sessaoInicio   = null;
+let sessaoTimer    = null;
+let registrosSessao = 0;
+
+function toggleSessao() {
+  if (!sessaoAtiva) {
+    iniciarSessao();
+  } else {
+    pararSessao();
+  }
+}
+
+function iniciarSessao() {
+  sessaoAtiva     = true;
+  sessaoInicio    = Date.now();
+  registrosSessao = 0;
+
+  // Reset all stats
+  limparDados();
+
+  // Update button
+  const btn   = document.getElementById('btnStartStop');
+  const icon  = document.getElementById('btnIcon');
+  const label = document.getElementById('btnLabel');
+  if (btn)   { btn.style.background = 'var(--danger)'; }
+  if (icon)  icon.textContent  = '⏹';
+  if (label) label.textContent = 'PARAR SESSÃO';
+
+  // Update session badge in topbar
+  const badge = document.querySelector('.session-badge');
+  if (badge) {
+    badge.textContent = '● Sessão ativa';
+    badge.style.background = 'rgba(0,200,83,0.1)';
+    badge.style.color = 'var(--ok)';
+  }
+
+  // Show banner
+  const banner = document.getElementById('sessionBanner');
+  if (banner) banner.style.display = 'flex';
+
+  // Start timer
+  sessaoTimer = setInterval(atualizarTimerSessao, 1000);
+
+  logSerial('▶ Sessão iniciada', 'ok');
+}
+
+function pararSessao() {
+  sessaoAtiva = false;
+  clearInterval(sessaoTimer);
+
+  // Update button
+  const btn   = document.getElementById('btnStartStop');
+  const icon  = document.getElementById('btnIcon');
+  const label = document.getElementById('btnLabel');
+  if (btn)   { btn.style.background = 'var(--ok)'; }
+  if (icon)  icon.textContent  = '▶';
+  if (label) label.textContent = 'INICIAR SESSÃO';
+
+  // Update session badge
+  const badge = document.querySelector('.session-badge');
+  if (badge) {
+    badge.textContent = '● Sessão encerrada';
+    badge.style.background = 'rgba(74,96,128,0.1)';
+    badge.style.color = 'var(--text2)';
+  }
+
+  // Hide banner
+  const banner = document.getElementById('sessionBanner');
+  if (banner) banner.style.display = 'none';
+
+  // Show summary toast
+  const duracao = sessaoInicio ? Math.floor((Date.now()-sessaoInicio)/1000) : 0;
+  const mins = Math.floor(duracao/60).toString().padStart(2,'0');
+  const secs = (duracao%60).toString().padStart(2,'0');
+  logSerial(`⏹ Sessão encerrada — Duração: ${mins}:${secs} | Registros: ${registrosSessao} | Passos: ${numPassos}`, 'ok');
+}
+
+function atualizarTimerSessao() {
+  if (!sessaoInicio) return;
+  const elapsed = Math.floor((Date.now() - sessaoInicio) / 1000);
+  const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+  const secs = (elapsed % 60).toString().padStart(2, '0');
+  const str  = mins + ':' + secs;
+
+  const timerEl  = document.getElementById('sessionTimer');
+  const bannerEl = document.getElementById('bannerTimer');
+  if (timerEl)  timerEl.textContent = str;
+  if (bannerEl) bannerEl.textContent = str;
+
+  // Update banner counters
+  const bReg  = document.getElementById('bannerRegistros');
+  const bPas  = document.getElementById('bannerPassos');
+  const bAle  = document.getElementById('bannerAlertas');
+  if (bReg) bReg.textContent = registrosSessao;
+  if (bPas) bPas.textContent = numPassos;
+  if (bAle) bAle.textContent = alertCount;
+}
+
 </script>
 </body>
 </html>

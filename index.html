@@ -1603,7 +1603,7 @@ function toggleSim() {
   if (simAtivo) {
     btn.textContent = '⏹ Parar Simulação';
     btn.classList.add('active');
-    logSerial('▶ Simulação iniciada — paciente em reabilitação', 'ok');
+    logSerial('▶ Simulação ativa. Clique em INICIAR SESSÃO para gravar dados.', 'ok');
     simInterval = setInterval(() => {
       const t = Date.now()/1000;
       // Simula 1 FSR — onda senoidal imitando ciclo de marcha
@@ -1651,27 +1651,78 @@ function toggleSim() {
 }
 
 // ─── WEB SERIAL ────────────────────────────────────
+// ─── SERIAL STATE ──────────────────────────────────
+let serialPort   = null;
+let serialReader = null;
+let serialAtivo  = false;
+
 async function conectarSerial() {
   if (!('serial' in navigator)) {
     logSerial('❌ Web Serial API requer Chrome ou Edge.', 'err');
     return;
   }
+
+  // Se já conectado, desconecta
+  if (serialAtivo) {
+    await desconectarSerial();
+    return;
+  }
+
   try {
-    const port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
-    logSerial('✅ Arduino conectado via USB (115200 baud)', 'ok');
+    serialPort = await navigator.serial.requestPort();
+    await serialPort.open({ baudRate: 115200 });
+    serialAtivo = true;
+
+    const btn = document.querySelector('.btn-connect');
+    if (btn) { btn.style.background = 'var(--ok)'; btn.textContent = '⏏ Desconectar'; }
+
+    logSerial('✅ Arduino conectado (115200 baud)', 'ok');
+    logSerial('ℹ Clique em INICIAR SESSÃO para começar a leitura.', 'ok');
+
+    lerSerial();
+  } catch(e) {
+    logSerial('❌ Erro: ' + e.message, 'err');
+  }
+}
+
+async function desconectarSerial() {
+  serialAtivo = false;
+  if (sessaoAtiva) pararSessao();
+  try {
+    if (serialReader) { await serialReader.cancel(); serialReader = null; }
+    if (serialPort)   { await serialPort.close();    serialPort   = null; }
+  } catch(e) {}
+  const btn = document.querySelector('.btn-connect');
+  if (btn) {
+    btn.style.background = '';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> Conectar USB';
+  }
+  logSerial('⏏ Arduino desconectado.', 'ok');
+}
+
+async function lerSerial() {
+  try {
     const dec = new TextDecoderStream();
-    port.readable.pipeTo(dec.writable);
-    const reader = dec.readable.getReader();
+    serialPort.readable.pipeTo(dec.writable);
+    serialReader = dec.readable.getReader();
     let buf = '';
-    while (true) {
-      const { value, done } = await reader.read();
+    while (serialAtivo) {
+      const { value, done } = await serialReader.read();
       if (done) break;
       buf += value;
       const lines = buf.split('\n'); buf = lines.pop();
-      lines.forEach(l => { if (l.trim() && !l.startsWith('ts_ms')) parseLinha(l); });
+      lines.forEach(l => {
+        if (!l.trim() || l.startsWith('ts_ms') || l.startsWith('AVISO') || l.startsWith('MPU')) {
+          if (l.trim()) logSerial('📟 ' + l.trim());
+          return;
+        }
+        // Só processa dados se sessão estiver ativa
+        if (sessaoAtiva) parseLinha(l);
+      });
     }
-  } catch(e) { logSerial('❌ Erro: ' + e.message, 'err'); }
+  } catch(e) {
+    if (serialAtivo) logSerial('❌ Erro serial: ' + e.message, 'err');
+  }
 }
 
 function parseLinha(l) {
@@ -2089,9 +2140,10 @@ window.addEventListener('load', function() {
 });
 
 // ─── SESSION CONTROL ───────────────────────────────
-let sessaoAtiva    = false;
-let sessaoInicio   = null;
-let sessaoTimer    = null;
+// ─── SESSION CONTROL ───────────────────────────────
+let sessaoAtiva     = false;
+let sessaoInicio    = null;
+let sessaoTimer     = null;
 let registrosSessao = 0;
 
 function toggleSessao() {
@@ -2103,22 +2155,27 @@ function toggleSessao() {
 }
 
 function iniciarSessao() {
+  // Precisa estar conectado (serial ou simulação)
+  if (!serialAtivo && !simAtivo) {
+    logSerial('⚠ Conecte o Arduino ou inicie a Simulação antes.', 'err');
+    return;
+  }
+
   sessaoAtiva     = true;
   sessaoInicio    = Date.now();
   registrosSessao = 0;
 
-  // Reset all stats
   limparDados();
 
-  // Update button
+  // Botão → PARAR (vermelho)
   const btn   = document.getElementById('btnStartStop');
   const icon  = document.getElementById('btnIcon');
   const label = document.getElementById('btnLabel');
-  if (btn)   { btn.style.background = 'var(--danger)'; }
+  if (btn)   btn.style.background = 'var(--danger)';
   if (icon)  icon.textContent  = '⏹';
   if (label) label.textContent = 'PARAR SESSÃO';
 
-  // Update session badge in topbar
+  // Badge topbar
   const badge = document.querySelector('.session-badge');
   if (badge) {
     badge.textContent = '● Sessão ativa';
@@ -2126,29 +2183,29 @@ function iniciarSessao() {
     badge.style.color = 'var(--ok)';
   }
 
-  // Show banner
+  // Banner
   const banner = document.getElementById('sessionBanner');
   if (banner) banner.style.display = 'flex';
 
-  // Start timer
+  // Timer
   sessaoTimer = setInterval(atualizarTimerSessao, 1000);
 
-  logSerial('▶ Sessão iniciada', 'ok');
+  logSerial('▶ Sessão iniciada — dados sendo coletados.', 'ok');
 }
 
 function pararSessao() {
   sessaoAtiva = false;
   clearInterval(sessaoTimer);
 
-  // Update button
+  // Botão → INICIAR (verde)
   const btn   = document.getElementById('btnStartStop');
   const icon  = document.getElementById('btnIcon');
   const label = document.getElementById('btnLabel');
-  if (btn)   { btn.style.background = 'var(--ok)'; }
+  if (btn)   btn.style.background = 'var(--ok)';
   if (icon)  icon.textContent  = '▶';
   if (label) label.textContent = 'INICIAR SESSÃO';
 
-  // Update session badge
+  // Badge topbar
   const badge = document.querySelector('.session-badge');
   if (badge) {
     badge.textContent = '● Sessão encerrada';
@@ -2156,15 +2213,19 @@ function pararSessao() {
     badge.style.color = 'var(--text2)';
   }
 
-  // Hide banner
+  // Esconde banner
   const banner = document.getElementById('sessionBanner');
   if (banner) banner.style.display = 'none';
 
-  // Show summary toast
+  // Resumo no log
   const duracao = sessaoInicio ? Math.floor((Date.now()-sessaoInicio)/1000) : 0;
   const mins = Math.floor(duracao/60).toString().padStart(2,'0');
   const secs = (duracao%60).toString().padStart(2,'0');
-  logSerial(`⏹ Sessão encerrada — Duração: ${mins}:${secs} | Registros: ${registrosSessao} | Passos: ${numPassos}`, 'ok');
+  logSerial(`⏹ Sessão encerrada | Duração: ${mins}:${secs} | Registros: ${registrosSessao} | Passos: ${numPassos} | Alertas: ${alertCount}`, 'ok');
+
+  // Reset timer display
+  const timerEl = document.getElementById('sessionTimer');
+  if (timerEl) timerEl.textContent = '00:00';
 }
 
 function atualizarTimerSessao() {

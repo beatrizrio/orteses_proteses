@@ -274,7 +274,7 @@ body {
 .chart-card { grid-column: 1 / 4; }
 
 /* ─── ACC CARD ───────────────────────────────────── */
-.acc-card { display: none; }
+.acc-card { grid-column: 1 / 3; }
 .acc-axes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:4px; }
 
 .axis-tile {
@@ -298,7 +298,6 @@ body {
 }
 
 /* ─── CONFIG CARD ────────────────────────────────── */
-
 .config-field {
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:12px;
@@ -441,6 +440,17 @@ tbody td {
 
 <!-- ─── SIDEBAR ────────────────────────────────── -->
 <aside class="sidebar">
+  <svg class="sidebar-logo" viewBox="0 0 42 42" fill="none">
+    <ellipse cx="21" cy="26" rx="11" ry="14" fill="rgba(255,255,255,0.12)" stroke="rgba(77,223,255,0.7)" stroke-width="1.5"/>
+    <ellipse cx="21" cy="20" rx="9" ry="10" fill="rgba(255,255,255,0.08)" stroke="rgba(77,223,255,0.5)" stroke-width="1.5"/>
+    <circle cx="17" cy="23" r="2.5" fill="none" stroke="rgba(77,223,255,0.9)" stroke-width="1.2"/>
+    <circle cx="21" cy="19" r="2.5" fill="none" stroke="rgba(77,223,255,0.9)" stroke-width="1.2"/>
+    <circle cx="25" cy="23" r="2.5" fill="none" stroke="rgba(77,223,255,0.9)" stroke-width="1.2"/>
+    <circle cx="21" cy="29" r="3" fill="none" stroke="rgba(77,223,255,0.9)" stroke-width="1.2"/>
+    <line x1="8" y1="20" x2="13" y2="20" stroke="rgba(77,223,255,0.5)" stroke-width="1"/>
+    <line x1="13" y1="20" x2="15" y2="17" stroke="rgba(77,223,255,0.5)" stroke-width="1"/>
+    <line x1="15" y1="17" x2="17" y2="22" stroke="rgba(77,223,255,0.5)" stroke-width="1"/>
+  </svg>
 
   <nav class="sidebar-nav">
     <button class="nav-item active" id="nav-dashboard" title="Dashboard" onclick="showPanel('dashboard')">
@@ -461,6 +471,15 @@ tbody td {
 <div class="main">
 <header class="topbar">
   <div class="topbar-brand">
+    <svg width="34" height="34" viewBox="0 0 42 42" fill="none">
+      <ellipse cx="21" cy="26" rx="11" ry="14" fill="rgba(10,61,98,0.07)" stroke="#0077B6" stroke-width="1.8"/>
+      <ellipse cx="21" cy="20" rx="9" ry="10" fill="rgba(10,61,98,0.05)" stroke="#00C2D1" stroke-width="1.5"/>
+      <circle cx="17" cy="23" r="2.5" fill="#0077B6"/>
+      <circle cx="21" cy="19" r="2.5" fill="#0077B6"/>
+      <circle cx="25" cy="23" r="2.5" fill="#0077B6"/>
+      <circle cx="21" cy="30" r="3" fill="#00C2D1"/>
+      <polyline points="7,20 12,20 14,17 16,23 18,18 21,20 26,20" stroke="#00C2D1" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+    </svg>
     <div class="brand-wordmark">
       <div class="brand-name"><span>Smart</span><span>Step</span></div>
       <div class="brand-slogan">Monitore · Oriente · Recupere</div>
@@ -490,6 +509,12 @@ tbody td {
   <div class="topbar-right">
     <div class="session-badge live">Sessão ativa</div>
     <div class="clock" id="clock">00:00:00</div>
+    <button class="btn-icon" title="Notificações">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </button>
+    <button class="btn-icon" title="Perfil">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </button>
   </div>
 </header>
 
@@ -730,7 +755,51 @@ tbody td {
     <canvas id="chartCanvas" height="110"></canvas>
   </div>
 
-  <!-- Acelerômetro removido temporariamente -->
+  <!-- ACELERÔMETRO ────────────────────────────────── -->
+  <div class="card acc-card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon" style="background:rgba(0,194,209,0.1);">📡</div>
+        Acelerômetro MPU-6050
+      </div>
+      <span class="badge-pill" id="mpuStatus" style="background:rgba(74,96,128,0.1);color:var(--text2);">AGUARDANDO</span>
+    </div>
+    <div class="acc-axes">
+      <div class="axis-tile">
+        <div class="axis-letter">ACC X</div>
+        <div class="axis-val" id="accX">0.000 g</div>
+        <div class="axis-desc">Médio-lateral</div>
+      </div>
+      <div class="axis-tile">
+        <div class="axis-letter">ACC Y</div>
+        <div class="axis-val" id="accY">0.000 g</div>
+        <div class="axis-desc">Ântero-posterior</div>
+      </div>
+      <div class="axis-tile">
+        <div class="axis-letter">ACC Z</div>
+        <div class="axis-val" id="accZ">1.000 g</div>
+        <div class="axis-desc">Vertical</div>
+      </div>
+      <div class="axis-tile">
+        <div class="axis-letter">GIRO X</div>
+        <div class="axis-val" id="giroX">0.00 °/s</div>
+        <div class="axis-desc">Roll</div>
+      </div>
+      <div class="axis-tile">
+        <div class="axis-letter">GIRO Y</div>
+        <div class="axis-val" id="giroY">0.00 °/s</div>
+        <div class="axis-desc">Pitch</div>
+      </div>
+      <div class="axis-tile">
+        <div class="axis-letter">GIRO Z</div>
+        <div class="axis-val" id="giroZ">0.00 °/s</div>
+        <div class="axis-desc">Yaw</div>
+      </div>
+    </div>
+    <div class="motion-tag" id="motionTag" style="background:rgba(0,200,83,0.08);color:var(--ok);">
+      <span>●</span> <span id="motionLabel">Aguardando dados do sensor...</span>
+    </div>
+  </div>
 
   <!-- Hidden inputs to keep JS working -->
   <input type="hidden" id="inputPeso" value="70">
@@ -1106,7 +1175,7 @@ tbody td {
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:20px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
 
     <!-- Alertas -->
     <div class="card">
@@ -1174,7 +1243,25 @@ tbody td {
       </div>
     </div>
 
-<!-- Acelerômetro config removido temporariamente -->
+    <!-- Acelerômetro -->
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="card-title-icon" style="background:rgba(0,194,209,0.1);">📡</div>Acelerômetro MPU-6050</div></div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:12px;">
+        <div style="padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+          <div style="font-size:0.68rem;font-weight:700;color:var(--text2);margin-bottom:6px;">Conexões I²C (Arduino Uno)</div>
+          <div style="font-size:0.72rem;color:var(--text);line-height:1.8;">
+            📌 SDA → Pino <b>A4</b><br>
+            📌 SCL → Pino <b>A5</b><br>
+            📌 VCC → <b>5V</b><br>
+            📌 GND → <b>GND</b>
+          </div>
+        </div>
+        <div style="padding:8px 12px;border-radius:8px;background:rgba(0,200,83,0.06);border:1px solid rgba(0,200,83,0.2);">
+          <div style="font-size:0.68rem;font-weight:700;color:var(--ok);">ℹ️ Calibração automática</div>
+          <div style="font-size:0.68rem;color:var(--text2);margin-top:3px;">O sensor calibra sozinho ao ligar. Mantenha o Arduino parado por ~1 segundo após conectar.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div style="display:flex;gap:12px;">
@@ -1228,10 +1315,10 @@ function pressureColor(pct) {
 }
 
 // ─── ATUALIZAR INTERFACE ───────────────────────────
-// CSV 1 FSR: ts,fsr_kg,carga_pct,limite_pct,em_apoio,
-//            num_passos,media_pico_kg,media_pico_pct,
-//            pico_sessao_kg,alertas,nao_conform_pct,alerta_imediato
-function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, nAlertas, nConfPct) {
+// CSV: ts,fsr_kg,carga_pct,limite_pct,em_apoio,num_passos,
+//      media_pico_kg,media_pico_pct,pico_sessao_kg,alertas,
+//      nao_conform_pct,alerta_imediato,acc_x,acc_y,acc_z,giro_x,giro_y,giro_z,movimento
+function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, nAlertas, nConfPct, ax, ay, az, gx, gy, gz, mov) {
   totalAmostras++;
   if (cargaPct <= limitePct) somaAdherencia++;
 
@@ -1310,6 +1397,39 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
     document.getElementById(s.lid).style.color = c;
     document.getElementById(s.did).style.background = c;
   });
+
+  // ── Acelerômetro ──
+  const accXEl = document.getElementById('accX');
+  const accYEl = document.getElementById('accY');
+  const accZEl = document.getElementById('accZ');
+  const gxEl   = document.getElementById('giroX');
+  const gyEl   = document.getElementById('giroY');
+  const gzEl   = document.getElementById('giroZ');
+  if (accXEl) accXEl.textContent = ax.toFixed(3) + ' g';
+  if (accYEl) accYEl.textContent = ay.toFixed(3) + ' g';
+  if (accZEl) accZEl.textContent = az.toFixed(3) + ' g';
+  if (gxEl)   gxEl.textContent   = gx.toFixed(2) + ' °/s';
+  if (gyEl)   gyEl.textContent   = gy.toFixed(2) + ' °/s';
+  if (gzEl)   gzEl.textContent   = gz.toFixed(2) + ' °/s';
+
+  // Classificação de movimento
+  const motTag   = document.getElementById('motionTag');
+  const motLabel = document.getElementById('motionLabel');
+  const mpuBadge = document.getElementById('mpuStatus');
+  const movData  = [
+    { label:'Paciente em repouso',       bg:'rgba(0,200,83,0.08)',    cor:'var(--ok)'       },
+    { label:'Movimento suave detectado', bg:'rgba(0,194,209,0.08)',   cor:'var(--accent)'   },
+    { label:'Paciente em marcha',        bg:'rgba(255,193,7,0.1)',    cor:'#b8860b'          },
+    { label:'Movimento brusco!',         bg:'rgba(255,82,82,0.08)',   cor:'var(--danger)'   },
+  ];
+  const m = movData[Math.min(mov, 3)];
+  if (motTag)   { motTag.style.background = m.bg; motTag.style.color = m.cor; }
+  if (motLabel)   motLabel.textContent = m.label;
+  if (mpuBadge) {
+    mpuBadge.textContent = 'MPU-6050 OK';
+    mpuBadge.style.background = 'rgba(0,200,83,0.1)';
+    mpuBadge.style.color = 'var(--ok)';
+  }
 
   // ── Métricas de Passo (Metodologia Moticon) ──
   numPassos    = nPassos;
@@ -1519,7 +1639,17 @@ function toggleSim() {
       }
       const nConfPct = numPassos > 0 ? (alertasPassos / numPassos) * 100 : 0;
 
-      update(fsr, cPct, al, numPassos, mediaPicoKg, mediaPicoPct, picoSessaoKg, alertasPassos, nConfPct);
+      // Simula dados do acelerômetro
+      const ax = 0.04*Math.sin(t*3.1);
+      const ay = 0.06*Math.cos(t*2.4);
+      const az = 1.0 + 0.03*Math.sin(t*6);
+      const gx = 2.0*Math.sin(t*2.0);
+      const gy = 1.5*Math.cos(t*1.8);
+      const gz = 0.5*Math.sin(t*3.0);
+      const mag = Math.sqrt(ax*ax+ay*ay+az*az);
+      const dyn = Math.abs(mag-1.0);
+      const mov = dyn>0.5?3:dyn>0.15?2:dyn>0.05?1:0;
+      update(fsr, cPct, al, numPassos, mediaPicoKg, mediaPicoPct, picoSessaoKg, alertasPassos, nConfPct, ax, ay, az, gx, gy, gz, mov);
     }, 80);
   } else {
     clearInterval(simInterval);
@@ -1555,9 +1685,10 @@ async function conectarSerial() {
 
 function parseLinha(l) {
   const p = l.split(',').map(parseFloat);
-  // CSV 1FSR: ts[0],fsr_kg[1],carga_pct[2],limite_pct[3],em_apoio[4],
-  //           num_passos[5],media_pico_kg[6],media_pico_pct[7],
-  //           pico_sessao_kg[8],alertas[9],nao_conform_pct[10],alerta_imediato[11]
+  // CSV: ts[0],fsr_kg[1],carga_pct[2],limite_pct[3],em_apoio[4],
+  //      num_passos[5],media_pico_kg[6],media_pico_pct[7],pico_sessao_kg[8],
+  //      alertas[9],nao_conform_pct[10],alerta_imediato[11],
+  //      acc_x[12],acc_y[13],acc_z[14],giro_x[15],giro_y[16],giro_z[17],movimento[18]
   if (p.length < 12 || isNaN(p[1])) return;
 
   const fsrKg    = p[1];
@@ -1569,9 +1700,12 @@ function parseLinha(l) {
   const pSessao  = p[8]  || 0;
   const nAlertas = p[9]  || 0;
   const nConfPct = p[10] || 0;
+  const ax = p[12] || 0; const ay = p[13] || 0; const az = p[14] || 1;
+  const gx = p[15] || 0; const gy = p[16] || 0; const gz = p[17] || 0;
+  const mov = p[18] || 0;
 
-  update(fsrKg, cPct, al, nPassos, mPicoKg, mPicoPct, pSessao, nAlertas, nConfPct);
-  logSerial(`FSR:${fsrKg.toFixed(2)}kg  Carga:${cPct.toFixed(1)}%  Passos:${nPassos}  NC:${nConfPct.toFixed(0)}%`);
+  update(fsrKg, cPct, al, nPassos, mPicoKg, mPicoPct, pSessao, nAlertas, nConfPct, ax, ay, az, gx, gy, gz, mov);
+  logSerial(`FSR:${fsrKg.toFixed(2)}kg  Carga:${cPct.toFixed(1)}%  Passos:${nPassos}  Mov:${['Parado','Suave','Marcha','Brusco'][Math.min(mov,3)]}`);
 }
 
 // ─── CONFIG ────────────────────────────────────────

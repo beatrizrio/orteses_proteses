@@ -129,18 +129,14 @@ body {
 
 .topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
 
-.session-badge {
+/* .session-badge-removed {
   display:flex; align-items:center; gap:6px;
   padding:6px 14px;
   border-radius:40px;
   font-size:0.72rem; font-weight:600;
-}
-.session-badge.live { background:rgba(0,200,83,0.1); color:var(--ok); border:1px solid rgba(0,200,83,0.25); }
-.session-badge.live::before {
-  content:''; width:7px; height:7px; border-radius:50%;
-  background:var(--ok); display:inline-block;
-  animation: blink 1.4s infinite;
-}
+} */
+
+
 
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
@@ -816,10 +812,17 @@ tbody td {
         ↓ Exportar CSV
       </button>
     </div>
-    <!-- START / STOP -->
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <button id="btnStartStop" onclick="toggleSessao()" style="flex:1;padding:12px;border-radius:10px;background:#00C853;color:#fff;border:none;font-family:Montserrat,sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;letter-spacing:0.04em;">▶ INICIAR SESSÃO</button>
 
+    <!-- INICIAR / PARAR -->
+    <div id="btnSessaoWrap" style="margin-bottom:10px;">
+      <button id="btnSessao" onclick="btnSessaoClick()"
+        style="width:100%;padding:12px;border-radius:10px;
+               background:#00C853;color:#fff;border:none;
+               font-family:Montserrat,sans-serif;font-size:0.85rem;
+               font-weight:800;cursor:pointer;letter-spacing:0.04em;
+               transition:background .2s;">
+        ▶ INICIAR SESSÃO
+      </button>
     </div>
     <div class="log-terminal" id="logBox">
       <div class="log-dim">[sistema] SmartStep Dashboard v2.0 inicializado.</div>
@@ -1416,12 +1419,8 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
   atualizarInsights(adh, mediaPicoPct, picoSessaoPct, limitePct, alertasPassos, numPassos);
 
   // Export
-  // Só registra dados se a sessão estiver ativa
-  if (sessaoAtiva) {
-    registrosSessao++;
-    dadosExport.push({ ts: Date.now(), fsrKg, cargaPct, limitePct, alerta:alerta?1:0, nPassos:numPassos, mPicoKg:mediaPicoKg, mPicoPct:mediaPicoPct, pSessao:picoSessaoKg, nAlertas:alertasPassos, nConfPct: numPassos>0?(alertasPassos/numPassos*100):0 });
-    const crEl = document.getElementById('contadorRegistros'); if (crEl) crEl.textContent = registrosSessao + ' registros coletados';
-  }
+  dadosExport.push({ ts: Date.now(), fsrKg, cargaPct, limitePct, alerta:alerta?1:0, nPassos:numPassos, mPicoKg:mediaPicoKg, mPicoPct:mediaPicoPct, pSessao:picoSessaoKg, nAlertas:alertasPassos, nConfPct: numPassos>0?(alertasPassos/numPassos*100):0 });
+  const crEl = document.getElementById('contadorRegistros'); if (crEl) crEl.textContent = dadosExport.length + ' registros coletados';
   // log movido para parseLinha
 }
 
@@ -1566,7 +1565,7 @@ function toggleSim() {
   if (simAtivo) {
     btn.textContent = '⏹ Parar Simulação';
     btn.classList.add('active');
-    logSerial('▶ Simulação ativa. Clique em INICIAR SESSÃO para gravar dados.', 'ok');
+    logSerial('▶ Simulação ativa.', 'ok');
     simInterval = setInterval(() => {
       const t = Date.now()/1000;
       // Simula 1 FSR — onda senoidal imitando ciclo de marcha
@@ -1650,7 +1649,7 @@ async function conectarSerial() {
 
 async function desconectarSerial() {
   serialAtivo = false;
-  if (sessaoAtiva) pararSessao();
+
   try {
     if (serialReader) { await serialReader.cancel(); serialReader = null; }
     if (serialPort)   { await serialPort.close();    serialPort   = null; }
@@ -1679,8 +1678,7 @@ async function lerSerial() {
           if (l.trim()) logSerial('📟 ' + l.trim());
           return;
         }
-        // Só processa dados se sessão estiver ativa
-        if (sessaoAtiva) parseLinha(l);
+        parseLinha(l);
       });
     }
   } catch(e) {
@@ -2102,74 +2100,43 @@ window.addEventListener('load', function() {
   logSerial(`Sistema iniciado | Peso: ${pesoCorporal}kg | Limite: ${limitePct}%`, 'ok');
 });
 
-// ─── SESSION CONTROL ───────────────────────────────
-// ─── SESSION CONTROL ───────────────────────────────
-let sessaoAtiva     = false;
-let sessaoInicio    = null;
-let sessaoTimer     = null;
-let registrosSessao = 0;
+// Session control removed
+let sessaoAtiva = false; // kept for compatibility
 
-function toggleSessao() {
-  if (!sessaoAtiva) { iniciarSessao(); } else { pararSessao(); }
-}
 
-function iniciarSessao() {
-  // Muda botão PRIMEIRO — antes de qualquer outra operação
-  const btn = document.getElementById('btnStartStop');
-  if (btn) {
+// ─── SESSÃO SIMPLES ────────────────────────────────
+let _sessaoOn = false;
+let _sessaoTimer = null;
+let _sessaoSeg = 0;
+
+function btnSessaoClick() {
+  _sessaoOn = !_sessaoOn;
+  const btn = document.getElementById('btnSessao');
+  if (!btn) return;
+
+  if (_sessaoOn) {
+    // INICIOU
     btn.style.background = '#FF5252';
-    btn.style.color = '#fff';
     btn.textContent = '⏹ PARAR SESSÃO';
-  }
-
-  sessaoAtiva     = true;
-  sessaoInicio    = Date.now();
-  registrosSessao = 0;
-
-  limparDados();
-
-  sessaoTimer = setInterval(atualizarTimerSessao, 1000);
-
-  if (!serialAtivo && !simAtivo) {
-    logSerial('⚠ Sessão iniciada — conecte o Arduino ou inicie a Simulação para ler dados.', 'err');
+    _sessaoSeg = 0;
+    limparDados();
+    logSerial('▶ Sessão iniciada.', 'ok');
+    _sessaoTimer = setInterval(function() {
+      _sessaoSeg++;
+      const m = String(Math.floor(_sessaoSeg/60)).padStart(2,'0');
+      const s = String(_sessaoSeg%60).padStart(2,'0');
+      btn.textContent = '⏹ PARAR SESSÃO  ' + m + ':' + s;
+    }, 1000);
   } else {
-    logSerial('▶ Sessão iniciada — dados sendo coletados.', 'ok');
-  }
-}
-
-function pararSessao() {
-  sessaoAtiva = false;
-  clearInterval(sessaoTimer);
-
-  // Muda botão PRIMEIRO
-  const btn = document.getElementById('btnStartStop');
-  if (btn) {
+    // PAROU
     btn.style.background = '#00C853';
-    btn.style.color = '#fff';
     btn.textContent = '▶ INICIAR SESSÃO';
+    clearInterval(_sessaoTimer);
+    const m = String(Math.floor(_sessaoSeg/60)).padStart(2,'0');
+    const s = String(_sessaoSeg%60).padStart(2,'0');
+    logSerial('⏹ Sessão encerrada | Duração: ' + m + ':' + s + ' | Passos: ' + numPassos, 'ok');
   }
-
-
-
-  // Resumo no log
-  const duracao = sessaoInicio ? Math.floor((Date.now()-sessaoInicio)/1000) : 0;
-  const mins = Math.floor(duracao/60).toString().padStart(2,'0');
-  const secs = (duracao%60).toString().padStart(2,'0');
-  logSerial(`⏹ Sessão encerrada | Duração: ${mins}:${secs} | Registros: ${registrosSessao} | Passos: ${numPassos} | Alertas: ${alertCount}`, 'ok');
-
-
 }
-
-function atualizarTimerSessao() {
-  if (!sessaoInicio) return;
-  const elapsed = Math.floor((Date.now() - sessaoInicio) / 1000);
-  const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
-  const secs = (elapsed % 60).toString().padStart(2, '0');
-  // Update log counter display
-  const cEl = document.getElementById('contadorRegistros');
-  if (cEl) cEl.textContent = registrosSessao + ' registros coletados';
-}
-
 </script>
 </body>
 </html>

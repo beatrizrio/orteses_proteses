@@ -438,26 +438,11 @@ tbody td {
 <!-- ─── TOAST ──────────────────────────────────── -->
 <div class="toast" id="toast">⚠ Carga acima do limite prescrito!</div>
 
-<!-- Session state banner -->
-<div id="sessionBanner" style="
-  position:fixed;top:64px;left:72px;right:0;z-index:80;
-  background:rgba(0,200,83,0.12);border-bottom:2px solid var(--ok);
-  padding:8px 28px;display:none;
-  align-items:center;justify-content:space-between;">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div style="width:10px;height:10px;border-radius:50%;background:var(--ok);animation:blink 1s infinite;"></div>
-    <span style="font-size:0.78rem;font-weight:700;color:var(--ok);font-family:Montserrat,sans-serif;">SESSÃO EM ANDAMENTO</span>
-    <span style="font-size:0.72rem;color:var(--text2);font-family:Montserrat,sans-serif;" id="bannerTimer">00:00</span>
-  </div>
-  <div style="display:flex;gap:16px;font-size:0.72rem;font-family:Montserrat,sans-serif;">
-    <span>Registros: <b id="bannerRegistros" style="color:var(--secondary);">0</b></span>
-    <span>Passos: <b id="bannerPassos" style="color:var(--secondary);">0</b></span>
-    <span>Alertas: <b id="bannerAlertas" style="color:var(--danger);">0</b></span>
-  </div>
-</div>
+
 
 <!-- ─── SIDEBAR ────────────────────────────────── -->
 <aside class="sidebar">
+
   <nav class="sidebar-nav">
     <button class="nav-item active" id="nav-dashboard" title="Dashboard" onclick="showPanel('dashboard')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -504,10 +489,7 @@ tbody td {
   </div>
 
   <div class="topbar-right">
-    <div class="session-badge live">Sessão ativa</div>
     <div class="clock" id="clock">00:00:00</div>
-    <div style="display:flex;flex-direction:column;align-items:center;">
-    </div>
   </div>
 </header>
 
@@ -836,19 +818,8 @@ tbody td {
     </div>
     <!-- START / STOP -->
     <div style="display:flex;gap:10px;margin-bottom:10px;">
-      <button id="btnStartStop" onclick="toggleSessao()" style="
-        flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
-        padding:10px;border-radius:10px;background:var(--ok);color:#fff;border:none;
-        font-family:Montserrat,sans-serif;font-size:0.82rem;font-weight:800;
-        cursor:pointer;transition:all .3s;letter-spacing:0.04em;">
-        <span id="btnIcon" style="font-size:1rem;">▶</span>
-        <span id="btnLabel">INICIAR SESSÃO</span>
-      </button>
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
-                  padding:6px 14px;background:var(--bg);border-radius:10px;border:1px solid var(--border);">
-        <div style="font-size:0.55rem;font-weight:700;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;">Duração</div>
-        <div style="font-size:0.95rem;font-weight:800;color:var(--secondary);font-variant-numeric:tabular-nums;" id="sessionTimer">00:00</div>
-      </div>
+      <button id="btnStartStop" onclick="toggleSessao()" style="flex:1;padding:12px;border-radius:10px;background:#00C853;color:#fff;border:none;font-family:Montserrat,sans-serif;font-size:0.85rem;font-weight:800;cursor:pointer;letter-spacing:0.04em;">▶ INICIAR SESSÃO</button>
+
     </div>
     <div class="log-terminal" id="logBox">
       <div class="log-dim">[sistema] SmartStep Dashboard v2.0 inicializado.</div>
@@ -1334,7 +1305,7 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
   // Alertas
   if (alerta) {
     alertCount++;
-    document.getElementById('kpiAlertas').textContent = alertCount;
+    const kaEl = document.getElementById('kpiAlertas'); if (kaEl) kaEl.textContent = alertCount;
     showToast();
   }
 
@@ -1371,7 +1342,7 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
     }
     document.getElementById(s.bid).style.width = Math.min(pct * 2, 100) + '%';
     document.getElementById(s.bid).style.background = c;
-    document.getElementById(s.lid).textContent = pct.toFixed(0) + '%';
+    const lidEl = document.getElementById(s.lid); if (lidEl) lidEl.textContent = pct.toFixed(0) + '%';
     document.getElementById(s.lid).style.color = c;
     document.getElementById(s.did).style.background = c;
   });
@@ -1449,7 +1420,7 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
   if (sessaoAtiva) {
     registrosSessao++;
     dadosExport.push({ ts: Date.now(), fsrKg, cargaPct, limitePct, alerta:alerta?1:0, nPassos:numPassos, mPicoKg:mediaPicoKg, mPicoPct:mediaPicoPct, pSessao:picoSessaoKg, nAlertas:alertasPassos, nConfPct: numPassos>0?(alertasPassos/numPassos*100):0 });
-    document.getElementById('contadorRegistros').textContent = registrosSessao + ' registros coletados';
+    const crEl = document.getElementById('contadorRegistros'); if (crEl) crEl.textContent = registrosSessao + ' registros coletados';
   }
   // log movido para parseLinha
 }
@@ -2139,18 +2110,16 @@ let sessaoTimer     = null;
 let registrosSessao = 0;
 
 function toggleSessao() {
-  if (!sessaoAtiva) {
-    iniciarSessao();
-  } else {
-    pararSessao();
-  }
+  if (!sessaoAtiva) { iniciarSessao(); } else { pararSessao(); }
 }
 
 function iniciarSessao() {
-  // Precisa estar conectado (serial ou simulação)
-  if (!serialAtivo && !simAtivo) {
-    logSerial('⚠ Conecte o Arduino ou inicie a Simulação antes.', 'err');
-    return;
+  // Muda botão PRIMEIRO — antes de qualquer outra operação
+  const btn = document.getElementById('btnStartStop');
+  if (btn) {
+    btn.style.background = '#FF5252';
+    btn.style.color = '#fff';
+    btn.textContent = '⏹ PARAR SESSÃO';
   }
 
   sessaoAtiva     = true;
@@ -2159,55 +2128,28 @@ function iniciarSessao() {
 
   limparDados();
 
-  // Botão → PARAR (vermelho)
-  const btn   = document.getElementById('btnStartStop');
-  const icon  = document.getElementById('btnIcon');
-  const label = document.getElementById('btnLabel');
-  if (btn)   btn.style.background = 'var(--danger)';
-  if (icon)  icon.textContent  = '⏹';
-  if (label) label.textContent = 'PARAR SESSÃO';
-
-  // Badge topbar
-  const badge = document.querySelector('.session-badge');
-  if (badge) {
-    badge.textContent = '● Sessão ativa';
-    badge.style.background = 'rgba(0,200,83,0.1)';
-    badge.style.color = 'var(--ok)';
-  }
-
-  // Banner
-  const banner = document.getElementById('sessionBanner');
-  if (banner) banner.style.display = 'flex';
-
-  // Timer
   sessaoTimer = setInterval(atualizarTimerSessao, 1000);
 
-  logSerial('▶ Sessão iniciada — dados sendo coletados.', 'ok');
+  if (!serialAtivo && !simAtivo) {
+    logSerial('⚠ Sessão iniciada — conecte o Arduino ou inicie a Simulação para ler dados.', 'err');
+  } else {
+    logSerial('▶ Sessão iniciada — dados sendo coletados.', 'ok');
+  }
 }
 
 function pararSessao() {
   sessaoAtiva = false;
   clearInterval(sessaoTimer);
 
-  // Botão → INICIAR (verde)
-  const btn   = document.getElementById('btnStartStop');
-  const icon  = document.getElementById('btnIcon');
-  const label = document.getElementById('btnLabel');
-  if (btn)   btn.style.background = 'var(--ok)';
-  if (icon)  icon.textContent  = '▶';
-  if (label) label.textContent = 'INICIAR SESSÃO';
-
-  // Badge topbar
-  const badge = document.querySelector('.session-badge');
-  if (badge) {
-    badge.textContent = '● Sessão encerrada';
-    badge.style.background = 'rgba(74,96,128,0.1)';
-    badge.style.color = 'var(--text2)';
+  // Muda botão PRIMEIRO
+  const btn = document.getElementById('btnStartStop');
+  if (btn) {
+    btn.style.background = '#00C853';
+    btn.style.color = '#fff';
+    btn.textContent = '▶ INICIAR SESSÃO';
   }
 
-  // Esconde banner
-  const banner = document.getElementById('sessionBanner');
-  if (banner) banner.style.display = 'none';
+
 
   // Resumo no log
   const duracao = sessaoInicio ? Math.floor((Date.now()-sessaoInicio)/1000) : 0;
@@ -2215,9 +2157,7 @@ function pararSessao() {
   const secs = (duracao%60).toString().padStart(2,'0');
   logSerial(`⏹ Sessão encerrada | Duração: ${mins}:${secs} | Registros: ${registrosSessao} | Passos: ${numPassos} | Alertas: ${alertCount}`, 'ok');
 
-  // Reset timer display
-  const timerEl = document.getElementById('sessionTimer');
-  if (timerEl) timerEl.textContent = '00:00';
+
 }
 
 function atualizarTimerSessao() {
@@ -2225,20 +2165,9 @@ function atualizarTimerSessao() {
   const elapsed = Math.floor((Date.now() - sessaoInicio) / 1000);
   const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
   const secs = (elapsed % 60).toString().padStart(2, '0');
-  const str  = mins + ':' + secs;
-
-  const timerEl  = document.getElementById('sessionTimer');
-  const bannerEl = document.getElementById('bannerTimer');
-  if (timerEl)  timerEl.textContent = str;
-  if (bannerEl) bannerEl.textContent = str;
-
-  // Update banner counters
-  const bReg  = document.getElementById('bannerRegistros');
-  const bPas  = document.getElementById('bannerPassos');
-  const bAle  = document.getElementById('bannerAlertas');
-  if (bReg) bReg.textContent = registrosSessao;
-  if (bPas) bPas.textContent = numPassos;
-  if (bAle) bAle.textContent = alertCount;
+  // Update log counter display
+  const cEl = document.getElementById('contadorRegistros');
+  if (cEl) cEl.textContent = registrosSessao + ' registros coletados';
 }
 
 </script>

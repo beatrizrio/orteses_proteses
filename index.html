@@ -1329,9 +1329,9 @@ function update(fsrKg, cargaPct, alerta, nPassos, mPicoKg, mPicoPct, pSessaoKg, 
   // Foot map — 1 FSR ativo (A0), restantes em zero
   const sensors = [
     { id: 'fsr-halux', bid: 'bar-halux', lid: 'lv-halux', did: 'dot-halux', val: 0 },
-    { id: 'fsr-meta1', bid: 'bar-meta1', lid: 'lv-meta1', did: 'dot-meta1', val: fsrKg },
+    { id: 'fsr-meta1', bid: 'bar-meta1', lid: 'lv-meta1', did: 'dot-meta1', val: 0 },
     { id: 'fsr-meta5', bid: 'bar-meta5', lid: 'lv-meta5', did: 'dot-meta5', val: 0 },
-    { id: 'fsr-calca', bid: 'bar-calca', lid: 'lv-calca', did: 'dot-calca', val: 0 },
+    { id: 'fsr-calca', bid: 'bar-calca', lid: 'lv-calca', did: 'dot-calca', val: fsrKg },
   ];
   const total = fsrKg || 1;
   sensors.forEach(s => {
